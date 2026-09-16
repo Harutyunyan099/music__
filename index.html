@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="hy" data-theme="night">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>muzzz</title>
+<meta name="description" content="muzzz — personal music app: your own files, YouTube search, collection, favorites and a personal wave.">
+<meta name="theme-color" content="#07070b">
+<link rel="icon" href="placeholder.svg">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<svg class="sprite" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5.2v13.6L19 12z" fill="currentColor"/></symbol>
+  <symbol id="i-pause" viewBox="0 0 24 24"><path d="M7.5 5h3.2v14H7.5zM13.3 5h3.2v14h-3.2z" fill="currentColor"/></symbol>
+  <symbol id="i-next" viewBox="0 0 24 24"><path d="M15.4 5H18v14h-2.6zM6 5.4v13.2L15 12z" fill="currentColor"/></symbol>
+  <symbol id="i-prev" viewBox="0 0 24 24"><path d="M6 5h2.6v14H6zM18 5.4v13.2L9 12z" fill="currentColor"/></symbol>
+  <symbol id="i-heart" viewBox="0 0 24 24"><path d="M12 20.2S4.6 15.6 4.6 10.4C4.6 7.5 6.7 5.5 9.2 5.5c1.6 0 2.4.8 2.8 1.5.4-.7 1.2-1.5 2.8-1.5 2.5 0 4.6 2 4.6 4.9 0 5.2-7.4 9.8-7.4 9.8z" fill="none" stroke="currentColor" stroke-width="1.7"/></symbol>
+  <symbol id="i-heart-on" viewBox="0 0 24 24"><path d="M12 20.2S4.6 15.6 4.6 10.4C4.6 7.5 6.7 5.5 9.2 5.5c1.6 0 2.4.8 2.8 1.5.4-.7 1.2-1.5 2.8-1.5 2.5 0 4.6 2 4.6 4.9 0 5.2-7.4 9.8-7.4 9.8z" fill="currentColor"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M5 7h14M10 7V5h4v2M7 7l1 12h8l1-12" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M15.6 15.6L20 20" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M4 11l8-6.5 8 6.5v8.2a.8.8 0 01-.8.8h-4.4v-6h-5.6v6H4.8a.8.8 0 01-.8-.8z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></symbol>
+  <symbol id="i-wave" viewBox="0 0 24 24"><path d="M3 12h2.2M8 5.5v13M12 8.5v7M16 4.5v15M20.5 10v4" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></symbol>
+  <symbol id="i-library" viewBox="0 0 24 24"><path d="M5 4.5h3v15H5zM10.5 4.5h3v15h-3z" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M16.6 5.4l2.9.8-3.6 13-2.9-.8z" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M12 7.6V12l3 2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></symbol>
+  <symbol id="i-volume" viewBox="0 0 24 24"><path d="M4 9.5h3.4L12 5.6v12.8L7.4 14.5H4z" fill="currentColor"/><path d="M15.4 9.3a3.9 3.9 0 010 5.4" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></symbol>
+  <symbol id="i-mute" viewBox="0 0 24 24"><path d="M4 9.5h3.4L12 5.6v12.8L7.4 14.5H4z" fill="currentColor"/><path d="M15.4 9.6l4.6 4.8m0-4.8l-4.6 4.8" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></symbol>
+  <symbol id="i-queue" viewBox="0 0 24 24"><path d="M4 7h11M4 12h11M4 17h7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M18 9.5v8.2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="16.3" cy="18" r="1.9" fill="currentColor"/></symbol>
+  <symbol id="i-chevron" viewBox="0 0 24 24"><path d="M6 14l6-6 6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><path d="M6 10l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M12 3.6l1.3 2.2 2.5-.3 1 2.3 2.2 1.3-.9 2.4.9 2.4-2.2 1.3-1 2.3-2.5-.3L12 20.4l-1.3-2.2-2.5.3-1-2.3L5 14.9l.9-2.4L5 10.1l2.2-1.3 1-2.3 2.5.3z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></symbol>
+  <symbol id="i-block" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M6.6 6.6l10.8 10.8" stroke="currentColor" stroke-width="1.7"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 4.8l8.2 14.4H3.8z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M12 10v4.2M12 16.7v.1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  <symbol id="i-note" viewBox="0 0 24 24"><path d="M9 17.5V6.6l9-1.9v10.6" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><ellipse cx="7" cy="17.6" rx="2.6" ry="2.2" fill="currentColor"/><ellipse cx="16" cy="15.6" rx="2.6" ry="2.2" fill="currentColor"/></symbol>
+</svg>
+
+<div class="aura" aria-hidden="true"></div>
+
+<div class="shell">
+  <aside class="sidebar">
+    <div class="brand">
+      <span class="brand__dot" aria-hidden="true"></span>
+      <span class="brand__name">muzzz</span>
+    </div>
+
+    <nav class="nav" aria-label="muzzz">
+      <button class="nav__item is-active" data-action="goto" data-route="home"><svg class="icon"><use href="#i-home"></use></svg><span data-i18n="nav_home">Գլխավոր</span></button>
+      <button class="nav__item" data-action="goto" data-route="search"><svg class="icon"><use href="#i-search"></use></svg><span data-i18n="nav_search">Որոնում</span></button>
+      <button class="nav__item nav__item--accent" data-action="goto" data-route="wave"><svg class="icon"><use href="#i-wave"></use></svg><span data-i18n="nav_wave">Իմ ալիքը</span></button>
+      <div class="nav__sep"></div>
+      <button class="nav__item" data-action="goto" data-route="collection"><svg class="icon"><use href="#i-library"></use></svg><span data-i18n="nav_collection">Իմ հավաքածուն</span></button>
+      <button class="nav__item" data-action="goto" data-route="favorites"><svg class="icon"><use href="#i-heart"></use></svg><span data-i18n="nav_favorites">Սիրածներ</span></button>
+      <button class="nav__item" data-action="goto" data-route="recent"><svg class="icon"><use href="#i-clock"></use></svg><span data-i18n="nav_recent">Վերջին լսածները</span></button>
+    </nav>
+
+    <div class="sidebar__foot">
+      <button class="nav__item" data-action="settings"><svg class="icon"><use href="#i-gear"></use></svg><span data-i18n="settings">Կարգավորումներ</span></button>
+    </div>
+  </aside>
+
+  <main class="content">
+    <button class="nav-toggle" id="nav-toggle" aria-label="menu"><svg class="icon"><use href="#i-queue"></use></svg></button>
+    <div class="view" id="view"></div>
+  </main>
+</div>
+
+<nav class="tabbar" aria-label="muzzz">
+  <button class="nav__item is-active" data-action="goto" data-route="home"><svg class="icon"><use href="#i-home"></use></svg><span data-i18n="nav_home">Գլխավոր</span></button>
+  <button class="nav__item" data-action="goto" data-route="search"><svg class="icon"><use href="#i-search"></use></svg><span data-i18n="nav_search">Որոնում</span></button>
+  <button class="nav__item" data-action="goto" data-route="wave"><svg class="icon"><use href="#i-wave"></use></svg><span data-i18n="nav_wave_s">Ալիք</span></button>
+  <button class="nav__item" data-action="goto" data-route="collection"><svg class="icon"><use href="#i-library"></use></svg><span data-i18n="nav_collection_s">Հավաքածու</span></button>
+  <button class="nav__item" data-action="goto" data-route="favorites"><svg class="icon"><use href="#i-heart"></use></svg><span data-i18n="nav_favorites_s">Սիրած</span></button>
+</nav>
+
+<footer class="bar">
+  <div class="bar__track">
+    <button class="bar__art" id="bar-art" data-action="np-open" aria-label="open player">
+      <img id="bar-img" src="placeholder.svg" alt="">
+      <span class="bar__spinner" aria-hidden="true"></span>
+    </button>
+    <div class="bar__meta" data-action="np-open">
+      <strong id="bar-title">muzzz</strong>
+      <span id="bar-artist"></span>
+    </div>
+    <button class="chip-btn" data-action="fav" data-player="1" aria-label="favorite"><svg class="icon"><use href="#i-heart"></use></svg></button>
+  </div>
+
+  <div class="bar__center">
+    <div class="bar__buttons">
+      <button class="icon-btn" data-action="player-prev" aria-label="previous"><svg class="icon"><use href="#i-prev"></use></svg></button>
+      <button class="play-btn" data-action="player-toggle" aria-label="play">
+        <svg class="icon icon--play"><use href="#i-play"></use></svg>
+        <svg class="icon icon--pause"><use href="#i-pause"></use></svg>
+      </button>
+      <button class="icon-btn" data-action="player-next" aria-label="next"><svg class="icon"><use href="#i-next"></use></svg></button>
+    </div>
+    <div class="bar__seek">
+      <span class="time" id="bar-now">0:00</span>
+      <div class="progress" id="bar-progress"><span></span></div>
+      <span class="time" id="bar-total">0:00</span>
+    </div>
+  </div>
+
+  <div class="bar__side">
+    <button class="chip-btn" data-action="add" data-player="1" aria-label="add"><svg class="icon"><use href="#i-plus"></use></svg></button>
+    <button class="icon-btn" data-action="player-mute" aria-label="mute">
+      <svg class="icon icon--vol"><use href="#i-volume"></use></svg>
+      <svg class="icon icon--muted"><use href="#i-mute"></use></svg>
+    </button>
+    <input id="volume" class="volume" type="range" min="0" max="100" value="85" aria-label="volume">
+    <button class="icon-btn" data-action="np-open" aria-label="expand"><svg class="icon"><use href="#i-chevron"></use></svg></button>
+  </div>
+</footer>
+
+<section class="np" id="np" aria-hidden="true">
+  <div class="np__head">
+    <button class="icon-btn" data-action="np-close" aria-label="close"><svg class="icon"><use href="#i-down"></use></svg></button>
+    <span class="np__label">muzzz</span>
+    <button class="icon-btn" data-action="settings" aria-label="settings"><svg class="icon"><use href="#i-gear"></use></svg></button>
+  </div>
+
+  <div class="np__body">
+    <div class="np__stage">
+      <div class="np__art" id="np-art"><img id="np-img" src="placeholder.svg" alt=""></div>
+      <div class="np__meta">
+        <h2 id="np-title"></h2>
+        <p id="np-artist"></p>
+      </div>
+      <div class="np__seek">
+        <span class="time" id="np-now">0:00</span>
+        <div class="progress" id="np-progress"><span></span></div>
+        <span class="time" id="np-total">0:00</span>
+      </div>
+      <div class="np__buttons">
+        <button class="chip-btn" data-action="fav" data-player="1" aria-label="favorite"><svg class="icon"><use href="#i-heart"></use></svg></button>
+        <button class="icon-btn" data-action="player-prev" aria-label="previous"><svg class="icon"><use href="#i-prev"></use></svg></button>
+        <button class="play-btn play-btn--big" data-action="player-toggle" aria-label="play">
+          <svg class="icon icon--play"><use href="#i-play"></use></svg>
+          <svg class="icon icon--pause"><use href="#i-pause"></use></svg>
+        </button>
+        <button class="icon-btn" data-action="player-next" aria-label="next"><svg class="icon"><use href="#i-next"></use></svg></button>
+        <button class="chip-btn" data-action="add" data-player="1" aria-label="add"><svg class="icon"><use href="#i-plus"></use></svg></button>
+      </div>
+    </div>
+
+    <aside class="np__queue">
+      <h3 data-i18n="up_next">Հաջորդիվ</h3>
+      <ul id="queue-list"></ul>
+    </aside>
+  </div>
+</section>
+
+<div class="yt-host" id="yt-host"><div id="yt-frame"></div></div>
+
+<dialog class="modal" id="modal-settings">
+  <header class="modal__head">
+    <h2 data-i18n="settings">Կարգավորումներ</h2>
+    <button class="icon-btn" data-close aria-label="close"><svg class="icon"><use href="#i-close"></use></svg></button>
+  </header>
+  <div class="modal__body" id="settings-body"></div>
+</dialog>
+
+<dialog class="modal modal--small" id="modal-login">
+  <header class="modal__head">
+    <h2 data-i18n="admin_login">Մուտք</h2>
+    <button class="icon-btn" data-close aria-label="close"><svg class="icon"><use href="#i-close"></use></svg></button>
+  </header>
+  <div class="modal__body">
+    <label class="field"><span data-i18n="admin_user">Օգտանուն</span><input id="login-user" type="text" autocomplete="username" autocapitalize="none"></label>
+    <label class="field"><span data-i18n="admin_pass">Գաղտնաբառ</span><input id="login-pass" type="password" autocomplete="current-password"></label>
+    <p class="field__error" id="login-error" hidden data-i18n="admin_wrong">Օգտանունը կամ գաղտնաբառը սխալ է։</p>
+    <button class="btn btn--primary" id="login-submit" data-i18n="admin_enter">Մուտք գործել</button>
+  </div>
+</dialog>
+
+<dialog class="modal" id="modal-admin">
+  <header class="modal__head">
+    <h2 data-i18n="admin_title">Ադմին պանել</h2>
+    <div class="modal__head-actions">
+      <button class="btn btn--ghost btn--small" id="admin-logout" data-i18n="admin_logout">Դուրս գալ</button>
+      <button class="icon-btn" data-close aria-label="close"><svg class="icon"><use href="#i-close"></use></svg></button>
+    </div>
+  </header>
+  <div class="modal__body">
+    <div class="admin-add">
+      <p data-i18n="admin_add_hint">Ընտրիր երգերը համակարգչից.</p>
+      <button class="btn btn--primary" id="admin-add" data-i18n="admin_add">Ավելացնել ֆայլեր</button>
+      <button class="btn btn--ghost btn--small" id="admin-restore" hidden></button>
+    </div>
+    <div class="admin-list" id="admin-list"></div>
+  </div>
+</dialog>
+
+<input type="file" id="admin-files" accept="audio/*" multiple hidden>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="i18n.js"></script>
+<script src="store.js"></script>
+<script src="api.js"></script>
+<script src="player.js"></script>
+<script src="wave.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

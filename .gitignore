@@ -1,0 +1,13 @@
+# secrets — never commit
+.env
+.env.local
+*.key
+
+# os / editor junk
+.DS_Store
+Thumbs.db
+desktop.ini
+__pycache__/
+*.pyc
+.vscode/
+.idea/
