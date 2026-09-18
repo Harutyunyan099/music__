@@ -1,0 +1,188 @@
+{
+  "name": "Իմ երգացանկը",
+  "songs": [
+    {
+      "id": "edoh-money-on-hand",
+      "title": "Money On Hand",
+      "artist": "EDOH",
+      "genre": "Հայկական ռեփ",
+      "duration": 152.0,
+      "src": "edoh-money-on-hand.m4a",
+      "cover": "edoh-money-on-hand.jpg",
+      "year": 2026
+    },
+    {
+      "id": "jakone-kiliana-ne-moryak",
+      "title": "Не моряк",
+      "artist": "Jakone, Kiliana",
+      "genre": "Ռուսական ռեփ",
+      "duration": 167.6,
+      "src": "jakone-kiliana-ne-moryak.m4a",
+      "cover": "jakone-kiliana-ne-moryak.svg"
+    },
+    {
+      "id": "khalif-malvina",
+      "title": "Мальвина",
+      "artist": "KhaliF",
+      "genre": "Ռուսական ռեփ",
+      "duration": 226.2,
+      "src": "khalif-malvina.m4a",
+      "cover": "khalif-malvina.jpg"
+    },
+    {
+      "id": "macan-basta-pust-bog",
+      "title": "Пусть Бог будет рядом с твоими планами",
+      "artist": "MACAN, Баста",
+      "genre": "Ռուսական ռեփ",
+      "duration": 196.7,
+      "src": "macan-basta-pust-bog.m4a",
+      "cover": "macan-basta-pust-bog.svg"
+    },
+    {
+      "id": "macan-kiliana-kak-zhe",
+      "title": "Как же",
+      "artist": "MACAN, Kiliana",
+      "genre": "Ռուսական ռեփ",
+      "duration": 153.6,
+      "src": "macan-kiliana-kak-zhe.m4a",
+      "cover": "macan-kiliana-kak-zhe.svg"
+    },
+    {
+      "id": "minor-mari-sarg-naret",
+      "title": "Sarg Naret",
+      "artist": "Minor, Mari",
+      "genre": "Հայկական ռեփ",
+      "duration": 218.9,
+      "src": "minor-mari-sarg-naret.m4a",
+      "cover": "minor-mari-sarg-naret.svg"
+    },
+    {
+      "id": "misho-artur-galstyan-ov-e-na",
+      "title": "Ով է նա",
+      "artist": "Միշո, Արթուր Գալստյան",
+      "genre": "Հայկական ռեփ",
+      "duration": 227.3,
+      "src": "misho-artur-galstyan-ov-e-na.m4a",
+      "cover": "misho-artur-galstyan-ov-e-na.svg"
+    },
+    {
+      "id": "mutket-chok-pind",
+      "title": "Պինդ",
+      "artist": "Մութկետ, Չոկ",
+      "genre": "Հայկական ռեփ",
+      "duration": 154.1,
+      "src": "mutket-chok-pind.m4a",
+      "cover": "mutket-chok-pind.svg"
+    },
+    {
+      "id": "sh-derasan",
+      "title": "Դերասան",
+      "artist": "SH",
+      "genre": "Հայկական ռեփ",
+      "duration": 126.1,
+      "src": "sh-derasan.m4a",
+      "cover": "sh-derasan.svg"
+    },
+    {
+      "id": "sh-hesht-er",
+      "title": "Հեշտ էր",
+      "artist": "SH",
+      "genre": "Հայկական ռեփ",
+      "duration": 154.5,
+      "src": "sh-hesht-er.m4a",
+      "cover": "sh-hesht-er.svg"
+    },
+    {
+      "id": "tara202-magistrali",
+      "title": "Магистрали",
+      "artist": "TARA202",
+      "genre": "Ռուսական ռեփ",
+      "duration": 212.2,
+      "src": "tara202-magistrali.m4a",
+      "cover": "tara202-magistrali.svg"
+    },
+    {
+      "id": "ulukmanapo-sin-nombre",
+      "title": "Sin Nombre",
+      "artist": "Ulukmanapo",
+      "genre": "Ռուսական ռեփ",
+      "duration": 151.1,
+      "src": "ulukmanapo-sin-nombre.m4a",
+      "cover": "ulukmanapo-sin-nombre.jpg"
+    },
+    {
+      "id": "vache-mandela",
+      "title": "Mandela",
+      "artist": "Vache",
+      "genre": "Հայկական ռեփ",
+      "duration": 174.8,
+      "src": "vache-mandela.m4a",
+      "cover": "vache-mandela.jpg"
+    },
+    {
+      "id": "vnas-usta-piso",
+      "title": "Usta Piso",
+      "artist": "Vnas",
+      "genre": "Հայկական ռեփ",
+      "duration": 114.2,
+      "src": "vnas-usta-piso.m4a",
+      "cover": "vnas-usta-piso.jpg"
+    },
+    {
+      "id": "basta-kinolenta-legenda",
+      "title": "Кинолента х Легенда",
+      "artist": "Баста",
+      "genre": "Ռուսական ռեփ",
+      "duration": 264.6,
+      "src": "basta-kinolenta-legenda.m4a",
+      "cover": "basta-kinolenta-legenda.jpg"
+    },
+    {
+      "id": "gio-pika-vse-prudy",
+      "title": "Все пруды",
+      "artist": "Гио Пика",
+      "genre": "Ռուսական ռեփ",
+      "duration": 150.3,
+      "src": "gio-pika-vse-prudy.m4a",
+      "cover": "gio-pika-vse-prudy.svg",
+      "year": 2022
+    },
+    {
+      "id": "bekaaes-zaplakannaya",
+      "title": "Заплаканная (bekaaes remix)",
+      "artist": "bekaaes",
+      "genre": "Ռուսական ռեփ",
+      "duration": 181.3,
+      "src": "bekaaes-zaplakannaya.m4a",
+      "cover": "bekaaes-zaplakannaya.svg"
+    },
+    {
+      "id": "kaspiyskiy-gruz-ne-bylo",
+      "title": "Не было и не надо",
+      "artist": "Каспийский Груз, Гансэлло",
+      "genre": "Ռուսական ռեփ",
+      "duration": 292.3,
+      "src": "kaspiyskiy-gruz-ne-bylo.m4a",
+      "cover": "kaspiyskiy-gruz-ne-bylo.svg"
+    },
+    {
+      "id": "ego-ay",
+      "title": "Ай",
+      "artist": "ЭGO",
+      "genre": "Ռուսական ռեփ",
+      "duration": 224.6,
+      "src": "ego-ay.m4a",
+      "cover": "ego-ay.svg",
+      "year": 2019
+    },
+    {
+      "id": "misho-shnacatsr",
+      "title": "Շնացածր",
+      "artist": "Միշո",
+      "genre": "Հայկական ռեփ",
+      "duration": 194.7,
+      "src": "misho-shnacatsr.m4a",
+      "cover": "misho-shnacatsr.jpg"
+    }
+  ]
+}

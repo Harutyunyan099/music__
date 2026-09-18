@@ -36,6 +36,16 @@
 
   var ADMIN_HASH = 'jrv83x';            // Narek :: harutyunyan2009
 
+  /* Artwork fallback as a data URI: it can never 404, so no broken image ever shows. */
+  var PLACEHOLDER = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">' +
+    '<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">' +
+    '<stop offset="0" stop-color="#2a2140"/><stop offset="1" stop-color="#3a1f36"/>' +
+    '</linearGradient></defs><rect width="64" height="64" fill="url(#g)"/>' +
+    '<path d="M25 44V22l16-3.4v18.6" fill="none" stroke="#a9a6c4" stroke-width="2.6" stroke-linecap="round"/>' +
+    '<ellipse cx="22" cy="44.5" rx="4.6" ry="3.8" fill="#a9a6c4"/>' +
+    '<ellipse cx="38" cy="41" rx="4.6" ry="3.8" fill="#a9a6c4"/></svg>');
+
   var App = {
     route: 'home',
     routeParam: '',
@@ -66,6 +76,7 @@
       Store.onChange(function (what, id) { App.onStoreEvent(what, id); });
 
       this.bind();
+      this.fixBrokenImages();
       this.registerServiceWorker();
       this.syncModes();
       this.syncPlayState();
@@ -73,6 +84,7 @@
       this.loadLocal().then(function () {
         Wave.init(App.local);
         App.go(location.hash.replace('#', '') || 'home', { silent: true });
+        App.restoreLastTrack();
       });
 
       Api.status().then(function () {
@@ -96,7 +108,7 @@
               source: 'local',
               title: song.title,
               artist: song.artist,
-              artwork: song.cover || 'placeholder.svg',
+              artwork: song.cover || PLACEHOLDER,
               duration: song.duration || 0,
               src: song.src,
               genre: song.genre || ''
@@ -112,7 +124,7 @@
                 source: 'local',
                 title: item.title,
                 artist: item.artist,
-                artwork: 'placeholder.svg',
+                artwork: PLACEHOLDER,
                 duration: item.duration || 0,
                 src: url,
                 upload: true
@@ -133,6 +145,28 @@
           });
         })
         .catch(function () { App.local = []; });
+    },
+
+    /** Images that failed before the listener existed still get the fallback. */
+    fixBrokenImages: function () {
+      $$('img').forEach(function (img) {
+        if (img.complete && img.naturalWidth === 0 && img.dataset.fallback !== '1') {
+          img.dataset.fallback = '1';
+          img.src = PLACEHOLDER;
+        }
+      });
+    },
+
+    /** The bar keeps the last played song after a reload — one tap resumes it. */
+    restoreLastTrack: function () {
+      if (Player.track || !Store.recent.length) return;
+      var queue = this.reg(Store.recent.slice(0, 30)).map(function (item) {
+        return App.registry.get(item.id) || item;      // fresh src for uploaded files
+      });
+      Player.prime(queue[0], queue, 0);
+      this.syncTrackInfo();
+      this.syncPlayState();
+      this.markCurrent();
     },
 
     reg: function (tracks) {
@@ -201,8 +235,8 @@
 
       return '<article class="card' + (current ? ' is-current' : '') + '" data-id="' + h(track.id) + '">' +
         '<div class="card__art">' +
-          '<img src="' + h(track.artwork || 'placeholder.svg') + '" alt="" loading="lazy" decoding="async" ' +
-            'onerror="this.onerror=null;this.src=\'placeholder.svg\'">' +
+          '<img src="' + h(track.artwork || PLACEHOLDER) + '" alt="" loading="lazy" decoding="async" ' +
+            '>' +
           '<button class="card__play" data-action="play" data-id="' + h(track.id) + '" ' +
             'aria-label="' + h(t('play')) + ' — ' + h(track.title) + '">' + this.icon('play') + '</button>' +
           (track.duration ? '<span class="card__time">' + fmtTime(track.duration) + '</span>' : '') +
@@ -230,8 +264,8 @@
 
       return '<li class="row' + (current ? ' is-current' : '') + '" data-id="' + h(track.id) + '" ' +
           'data-action="play" tabindex="0" role="button" aria-label="' + h(track.title + ' — ' + track.artist) + '">' +
-        '<span class="row__art"><img src="' + h(track.artwork || 'placeholder.svg') + '" alt="" loading="lazy" ' +
-          'decoding="async" onerror="this.onerror=null;this.src=\'placeholder.svg\'">' +
+        '<span class="row__art"><img src="' + h(track.artwork || PLACEHOLDER) + '" alt="" loading="lazy" ' +
+          'decoding="async">' +
           '<span class="row__play">' + this.icon('play') + '</span></span>' +
         '<span class="row__text"><span class="row__title">' + h(track.title) + '</span>' +
         '<span class="row__artist">' + h(track.artist) + '</span></span>' +
@@ -384,8 +418,8 @@
 
         if (track) {
           out += '<div class="wave__now">' +
-            '<img class="wave__art" src="' + h(track.artwork || 'placeholder.svg') + '" alt="" decoding="async" ' +
-              'onerror="this.onerror=null;this.src=\'placeholder.svg\'">' +
+            '<img class="wave__art" src="' + h(track.artwork || PLACEHOLDER) + '" alt="" decoding="async" ' +
+              '>' +
             '<div class="wave__meta">' +
               (reasonText ? '<p class="wave__reason">' + h(reasonText) + '</p>' : '') +
               '<h2>' + h(track.title) + '</h2>' +
@@ -755,6 +789,7 @@
     /* ----------------------------------------------------------- player UI */
 
     onPlayerEvent: function (what) {
+      if (document.hidden && (what === 'time' || what === 'state')) return;
       if (what === 'time') { this.scheduleProgress(); return; }
 
       if (what === 'track') {
@@ -838,7 +873,7 @@
       $('#bar-title').textContent = track.title;
       $('#bar-artist').textContent = track.artist;
       var barImg = $('#bar-img');
-      var artwork = track.artwork || 'placeholder.svg';
+      var artwork = track.artwork || PLACEHOLDER;
       if (barImg.getAttribute('src') !== artwork) barImg.src = artwork;
       $('#np-title').textContent = track.title;
       $('#np-artist').textContent = track.artist;
@@ -904,6 +939,7 @@
 
     /** Progress is written once per animation frame and only when it changed. */
     scheduleProgress: function (force) {
+      if (document.hidden) return;          // background: the lock screen drives the UI, not the DOM
       if (this.frame.progress && !force) return;
       this.frame.progress = true;
       requestAnimationFrame(function () {
@@ -946,13 +982,14 @@
       this.reg(items);
       box.innerHTML = items.slice(0, 20).map(function (track) {
         return '<li class="qrow" data-action="play" data-id="' + h(track.id) + '">' +
-          '<img src="' + h(track.artwork || 'placeholder.svg') + '" alt="" loading="lazy" decoding="async" ' +
-            'onerror="this.onerror=null;this.src=\'placeholder.svg\'">' +
+          '<img src="' + h(track.artwork || PLACEHOLDER) + '" alt="" loading="lazy" decoding="async" ' +
+            '>' +
           '<span><b>' + h(track.title) + '</b><i>' + h(track.artist) + '</i></span></li>';
       }).join('');
     },
 
     playerError: function (reason) {
+      if (reason === 'blocked') { this.toast(t('err_blocked')); return; }
       if (reason === 'embed_blocked') this.toast(t('err_embed'));
       else if (reason === 'local_file') this.toast(t('err_local'));
       else if (reason === 'yt_api') { this.toast(t('err_network')); return; }
@@ -1076,8 +1113,8 @@
     renderAdmin: function () {
       $('#admin-list').innerHTML = this.local.map(function (track) {
         return '<div class="arow" data-id="' + h(track.id) + '">' +
-          '<img src="' + h(track.artwork || 'placeholder.svg') + '" alt="" loading="lazy" ' +
-            'onerror="this.onerror=null;this.src=\'placeholder.svg\'">' +
+          '<img src="' + h(track.artwork || PLACEHOLDER) + '" alt="" loading="lazy" ' +
+            '>' +
           '<span class="arow__fields">' +
             '<input value="' + h(track.title) + '" data-field="title" aria-label="' + h(t('admin_title_field')) + '">' +
             '<input value="' + h(track.artist) + '" data-field="artist" aria-label="' + h(t('lbl_artist')) + '">' +
@@ -1197,6 +1234,14 @@
     /* ---------------------------------------------------------------- bind */
 
     bind: function () {
+      // any artwork that fails to load quietly falls back to the inline placeholder
+      document.addEventListener('error', function (event) {
+        var node = event.target;
+        if (!node || node.tagName !== 'IMG' || node.dataset.fallback === '1') return;
+        node.dataset.fallback = '1';
+        node.src = PLACEHOLDER;
+      }, true);
+
       document.addEventListener('click', function (event) {
         var target = event.target.closest('[data-action]');
         if (!target) return;
@@ -1246,6 +1291,13 @@
           App.runSearch(true);
           event.target.blur();
         }
+      });
+
+      document.addEventListener('visibilitychange', function () {
+        if (document.hidden) return;
+        App.syncPlayState();
+        App.syncTrackInfo();
+        App.writeProgress();
       });
 
       var resizeTimer = null;

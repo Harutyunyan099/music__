@@ -3,24 +3,26 @@
    what lets local songs keep playing when the screen goes off).
    Job 2: the site updates itself — a new VERSION replaces the old cache on the next visit. */
 
-var VERSION = 'muzzz-v3.1.0';
+var VERSION = 'muzzz-v3.2.0';
 var SHELL_CACHE = VERSION + '-shell';
 var MEDIA_CACHE = VERSION + '-media';
 
 var SHELL = [
   './', 'index.html', 'style.css',
   'app.js', 'store.js', 'api.js', 'player.js', 'wave.js', 'i18n.js',
-  'manifest.json', 'placeholder.svg', 'icon-192.png', 'icon-512.png'
+  'songs.json', 'manifest.json', 'icon-192.png', 'icon-512.png'
 ];
 
 var MEDIA = /\.(m4a|mp3|wav|flac|ogg|opus|jpg|jpeg|png|webp|svg)$/i;
 
 self.addEventListener('install', function (event) {
   event.waitUntil(
-    caches.open(SHELL_CACHE)
-      .then(function (cache) { return cache.addAll(SHELL); })
-      .catch(function () { /* one missing file must not block the install */ })
-      .then(function () { return self.skipWaiting(); })
+    caches.open(SHELL_CACHE).then(function (cache) {
+      // cached one by one: a single missing file must not break the whole install
+      return Promise.all(SHELL.map(function (url) {
+        return cache.add(url).catch(function () { return null; });
+      }));
+    }).then(function () { return self.skipWaiting(); })
   );
 });
 

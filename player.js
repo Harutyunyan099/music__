@@ -5,6 +5,12 @@
 
   var audio = new Audio();
   audio.preload = 'metadata';
+  audio.setAttribute('playsinline', '');
+  audio.setAttribute('webkit-playsinline', '');
+  audio.setAttribute('x-webkit-airplay', 'allow');
+  // Android keeps a media session alive more reliably when the element is in the document
+  if (document.body) document.body.appendChild(audio);
+  else document.addEventListener('DOMContentLoaded', function () { document.body.appendChild(audio); });
 
   var listeners = [];
   var pollTimer = null;
@@ -33,6 +39,7 @@
     history: [],              // for shuffle "previous"
     sleepTimer: null,
     sleepAtEnd: false,
+    primed: false,            // a track is shown in the bar but not loaded yet
     onEnded: null,
     onError: null,
 
@@ -63,8 +70,23 @@
       this.emit('queue');
     },
 
+    /** Shows a track in the player without loading or playing it (used on startup). */
+    prime: function (track, queue, index) {
+      if (!track) return;
+      this.primed = true;
+      this.track = track;
+      this.queue = (queue && queue.length) ? queue.slice() : [track];
+      this.index = typeof index === 'number' ? index : 0;
+      this.position = 0;
+      this.duration = track.duration || 0;
+      this.playing = false;
+      this.loading = false;
+      this.emit('track');
+    },
+
     play: function (track, options) {
       options = options || {};
+      this.primed = false;
       if (options.queue) this.setQueue(options.queue, options.index, options.context);
       else if (options.context) this.context = options.context;
 
@@ -96,13 +118,22 @@
         if (this.queue.length) this.play(this.queue[Math.max(0, this.index)]);
         return;
       }
+      if (this.primed) {                       // first press after a reload: load it now
+        var pending = this.track;
+        this.primed = false;
+        this.track = null;
+        this.play(pending, { context: this.context });
+        return;
+      }
       if (this.track.source === 'youtube') {
         if (!yt.player || !yt.ready) return;
         if (this.playing) yt.player.pauseVideo();
         else yt.player.playVideo();
       } else {
         if (this.playing) audio.pause();
-        else audio.play().catch(function () { /* blocked autoplay */ });
+        else audio.play().catch(function (error) {
+          if (error && error.name === 'NotAllowedError' && Player.onError) Player.onError('blocked');
+        });
       }
     },
 
@@ -165,7 +196,7 @@
     resume: function () {
       if (!this.track) return;
       if (this.track.source === 'youtube') { if (yt.player && yt.ready) yt.player.playVideo(); }
-      else audio.play().catch(function () {});
+      else audio.play().catch(function () { /* needs a user gesture */ });
     },
 
     /* ----------------------------------------------------------- sources */
@@ -176,7 +207,11 @@
       audio.volume = this.volume;
       audio.muted = this.muted;
       audio.load();
-      audio.play().catch(function () { Player.playing = false; Player.emit('state'); });
+      audio.play().catch(function (error) {
+        Player.playing = false;
+        Player.emit('state');
+        if (error && error.name === 'NotAllowedError' && Player.onError) Player.onError('blocked');
+      });
       this.buildChain();
     },
 
@@ -370,7 +405,16 @@
 
     /* ------------------------------------------- equaliser for local files */
 
-    buildChain: function () {
+    eqIsActive: function () {
+      var eq = (prefs().eq) || {};
+      return !!(eq.bass || eq.mid || eq.treble || eq.loud);
+    },
+
+    /* The equaliser routes the element through Web Audio. Some Android builds suspend
+       that graph in the background, which would silence playback — so the graph is only
+       created when the equaliser is actually in use. Flat EQ = plain <audio> = safest. */
+    buildChain: function (force) {
+      if (!force && !this.eqIsActive()) return;
       if (sound.tried || location.protocol === 'file:') { this.applyEq(); return; }
       sound.tried = true;
       try {
@@ -393,7 +437,11 @@
     },
 
     applyEq: function () {
-      if (!sound.ready || !global.Store) return;
+      if (!sound.ready) {
+        if (this.eqIsActive() && this.track && this.track.source !== 'youtube') this.buildChain(true);
+        return;
+      }
+      if (!global.Store) return;
       var eq = Store.prefs.eq || { bass: 0, mid: 0, treble: 0, loud: false };
       sound.bass.gain.value = eq.bass;
       sound.mid.gain.value = eq.mid;
@@ -443,12 +491,13 @@
     updatePositionState: function () {
       if (!('mediaSession' in navigator)) return;
       try {
-        navigator.mediaSession.playbackState = this.playing ? 'playing' : 'paused';
-        if (navigator.mediaSession.setPositionState && this.duration > 0 && isFinite(this.duration)) {
+        navigator.mediaSession.playbackState = !this.track ? 'none' : (this.playing ? 'playing' : 'paused');
+        var duration = this.duration;
+        if (navigator.mediaSession.setPositionState && duration > 0 && isFinite(duration) && !isNaN(duration)) {
           navigator.mediaSession.setPositionState({
-            duration: this.duration,
-            position: Math.max(0, Math.min(this.position, this.duration)),
-            playbackRate: 1
+            duration: duration,
+            position: Math.max(0, Math.min(this.position || 0, duration)),
+            playbackRate: audio.playbackRate || 1
           });
         }
       } catch (e) { /* ignore */ }
@@ -459,6 +508,7 @@
 
   audio.addEventListener('playing', function () {
     Player.playing = true; Player.loading = false;
+    if (sound.ctx && sound.ctx.state === 'suspended') sound.ctx.resume();
     Player.updatePositionState();
     Player.emit('state');
   });
@@ -480,6 +530,17 @@
       lastEmittedPosition = -1;
       Player.emitTime();
     }
+  });
+  audio.addEventListener('canplay', function () {
+    if (Player.track && Player.track.source !== 'youtube') { Player.loading = false; Player.emit('state'); }
+  });
+  audio.addEventListener('seeking', function () { Player.loading = true; Player.emit('state'); });
+  audio.addEventListener('seeked', function () {
+    Player.loading = false;
+    Player.position = audio.currentTime;
+    lastEmittedPosition = -1;
+    Player.emitTime();
+    Player.emit('state');
   });
   audio.addEventListener('ended', function () { Player.handleEnded(); });
   audio.addEventListener('error', function () {
