@@ -40,6 +40,8 @@
     sleepTimer: null,
     sleepAtEnd: false,
     primed: false,            // a track is shown in the bar but not loaded yet
+    resumeIntent: false,      // YouTube embed was playing when the app went to the background
+    resumeAt: 0,
     onEnded: null,
     onError: null,
 
@@ -138,6 +140,7 @@
     },
 
     pause: function () {
+      this.resumeIntent = false;          // an explicit pause is never auto-resumed
       if (!this.track) return;
       if (this.track.source === 'youtube') { if (yt.player && yt.ready) yt.player.pauseVideo(); }
       else audio.pause();
@@ -461,7 +464,7 @@
     updateMediaSession: function () {
       if (!('mediaSession' in navigator) || !this.track) return;
       try {
-        var art = this.track.artwork || 'icon-512.png';
+        var art = this.track.artworkLarge || this.track.artwork || 'icon-512.png';
         navigator.mediaSession.metadata = new global.MediaMetadata({
           title: this.track.title,
           artist: this.track.artist,
@@ -551,11 +554,30 @@
     if (Player.onError) Player.onError('local_file');
   });
 
-  /* The browser may suspend the Web Audio graph when the app is backgrounded;
-     resuming it keeps local playback alive with the screen off. */
+  /* Background handling.
+     Local files: nothing to do, <audio> keeps playing. We only resume the Web Audio
+     graph, which some Android builds suspend while the app is hidden.
+     YouTube: the embed is stopped by the platform when the page is hidden — we cannot
+     change that. What we can do is remember where it stopped and continue from the same
+     second as soon as the user comes back. */
   document.addEventListener('visibilitychange', function () {
-    if (document.hidden) return;
+    if (document.hidden) {
+      if (Player.track && Player.track.source === 'youtube' && Player.playing) {
+        Player.resumeIntent = true;
+        Player.resumeAt = Player.position;
+      }
+      return;
+    }
+
     if (sound.ctx && sound.ctx.state === 'suspended') sound.ctx.resume();
+
+    if (Player.resumeIntent && Player.track && Player.track.source === 'youtube') {
+      Player.resumeIntent = false;
+      if (!Player.playing) {
+        if (Math.abs((Player.position || 0) - Player.resumeAt) > 1.5) Player.seekTo(Player.resumeAt);
+        Player.resume();
+      }
+    }
     Player.updatePositionState();
   });
 

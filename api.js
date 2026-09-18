@@ -68,7 +68,7 @@
       return request('/api/videos', { ids: ids.join(',') });
     },
 
-    /** search.list item -> the track shape the whole app uses */
+    /** search.list item -> the exact same track shape local files use */
     toTrack: function (item) {
       var parts = Api.splitTitle(item.title, item.channel);
       return {
@@ -77,9 +77,12 @@
         videoId: item.videoId,
         title: parts.title,
         artist: parts.artist,
+        album: item.channel || '',
         channel: item.channel,
         channelId: item.channelId,
         artwork: item.thumbnail,
+        // square-ish, bigger image for the lock screen / media notification
+        artworkLarge: item.videoId ? 'https://i.ytimg.com/vi/' + item.videoId + '/hqdefault.jpg' : item.thumbnail,
         duration: item.duration || 0,
         url: 'https://www.youtube.com/watch?v=' + item.videoId,
         views: item.views || 0

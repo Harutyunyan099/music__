@@ -760,6 +760,7 @@
 
         case 'np-open': this.openNp(true); return;
         case 'np-close': this.openNp(false); return;
+        case 'add-my-files': $('#admin-files').click(); return;
         case 'settings': this.openModal('settings'); return;
         case 'admin': this.openAdmin(); return;
         default: return;
@@ -793,6 +794,10 @@
       if (what === 'time') { this.scheduleProgress(); return; }
 
       if (what === 'track') {
+        if (Player.track && Player.track.source === 'youtube' && !this.ytNoticeShown) {
+          this.ytNoticeShown = true;
+          this.toast(t('yt_bg_note'));
+        }
         this.syncTrackInfo();
         this.syncPlayState();
         this.markCurrent();
@@ -1100,6 +1105,10 @@
             '<button class="chip" data-action="reset-all">' + h(t('reset_all')) + '</button>' +
           '</div></div>' +
 
+        '<div class="setting setting--col"><span>' + h(t('my_files')) + '</span>' +
+          '<p class="muted">' + h(t('my_files_hint')) + '</p>' +
+          '<button class="btn btn--primary" data-action="add-my-files">' + this.icon('plus') + ' ' + h(t('admin_add')) + '</button>' +
+        '</div>' +
         '<button class="btn btn--ghost" data-action="admin">' + h(t('admin')) + '</button>';
     },
 
