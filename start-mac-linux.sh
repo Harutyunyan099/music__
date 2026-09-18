@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 cd "$(dirname "$0")" || exit 1
+export OPEN_BROWSER=1
 echo "Starting muzzz..."
 if command -v python3 >/dev/null 2>&1; then
   python3 server.py

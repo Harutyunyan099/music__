@@ -1,0 +1,2 @@
+# muzzz uses only the Python standard library.
+# The file exists so Render's build step (pip install -r requirements.txt) succeeds.

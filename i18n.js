@@ -4,6 +4,16 @@
 
   var I18N = {
     hy: {
+      add_to_playlist: 'Ավելացնել ցանկում', playlists: 'Իմ ցանկերը', playlist_new: 'Նոր ցանկ',
+      playlist_name: 'Ցանկի անունը', playlist_default: 'Նոր ցանկ', track_count: '{n} երգ',
+      rename: 'Վերանվանել', delete: 'Ջնջել', no_playlists: 'Դեռ ցանկեր չկան',
+      empty_playlist_title: 'Ցանկը դատարկ է', empty_playlist_text: 'Երգի կողքի ցուցակի կոճակով ավելացրու երգեր այստեղ։',
+      confirm_delete_playlist: 'Ջնջե՞լ այս ցանկը։', confirm_clear: 'Վստա՞հ ես։', confirm_reset: 'Ջնջվելու են բոլոր տվյալները։ Շարունակե՞լ։',
+      clear_favorites: 'Մաքրել սիրածները', reset_all: 'Զրոյացնել ամեն ինչ', data: 'Տվյալներ',
+      autoplay: 'Ավտոմատ նվագարկում', shuffle: 'Խառը նվագարկում', shuffle_on: 'Խառը նվագարկում', shuffle_off: 'Հերթականությամբ',
+      repeat_off: 'Կրկնությունն անջատված է', repeat_all: 'Կրկնել ցանկը', repeat_one: 'Կրկնել այս երգը',
+      queue_empty: 'Հերթը դատարկ է', t_added_playlist: 'Ավելացվեց ցանկում', err_no_audio: 'Երաժշտական ֆայլ չգտնվեց',
+      admin_title_field: 'Երգի անունը', unknown_artist: 'Անհայտ կատարող',
       nav_home: 'Գլխավոր', nav_search: 'Որոնում', nav_wave: 'Իմ ալիքը',
       nav_collection: 'Իմ հավաքածուն', nav_favorites: 'Սիրածներ', nav_recent: 'Վերջին լսածները',
       nav_wave_s: 'Ալիք', nav_collection_s: 'Հավաքածու', nav_favorites_s: 'Սիրած',
@@ -59,6 +69,16 @@
     },
 
     en: {
+      add_to_playlist: 'Add to playlist', playlists: 'My playlists', playlist_new: 'New playlist',
+      playlist_name: 'Playlist name', playlist_default: 'New playlist', track_count: '{n} tracks',
+      rename: 'Rename', delete: 'Delete', no_playlists: 'No playlists yet',
+      empty_playlist_title: 'This playlist is empty', empty_playlist_text: 'Use the list button next to a track to add songs here.',
+      confirm_delete_playlist: 'Delete this playlist?', confirm_clear: 'Are you sure?', confirm_reset: 'This erases all your data. Continue?',
+      clear_favorites: 'Clear favorites', reset_all: 'Reset everything', data: 'Data',
+      autoplay: 'Autoplay', shuffle: 'Shuffle', shuffle_on: 'Shuffle on', shuffle_off: 'Shuffle off',
+      repeat_off: 'Repeat off', repeat_all: 'Repeat all', repeat_one: 'Repeat one',
+      queue_empty: 'The queue is empty', t_added_playlist: 'Added to playlist', err_no_audio: 'No audio files found',
+      admin_title_field: 'Track title', unknown_artist: 'Unknown artist',
       nav_home: 'Home', nav_search: 'Search', nav_wave: 'My Wave',
       nav_collection: 'My Collection', nav_favorites: 'Favorites', nav_recent: 'Recently played',
       nav_wave_s: 'Wave', nav_collection_s: 'Library', nav_favorites_s: 'Liked',
@@ -114,6 +134,16 @@
     },
 
     ru: {
+      add_to_playlist: 'Добавить в плейлист', playlists: 'Мои плейлисты', playlist_new: 'Новый плейлист',
+      playlist_name: 'Название плейлиста', playlist_default: 'Новый плейлист', track_count: 'треков: {n}',
+      rename: 'Переименовать', delete: 'Удалить', no_playlists: 'Плейлистов пока нет',
+      empty_playlist_title: 'Плейлист пуст', empty_playlist_text: 'Кнопка со списком рядом с треком добавляет песни сюда.',
+      confirm_delete_playlist: 'Удалить этот плейлист?', confirm_clear: 'Точно?', confirm_reset: 'Все данные будут удалены. Продолжить?',
+      clear_favorites: 'Очистить любимые', reset_all: 'Сбросить всё', data: 'Данные',
+      autoplay: 'Автовоспроизведение', shuffle: 'Случайный порядок', shuffle_on: 'Случайный порядок', shuffle_off: 'По порядку',
+      repeat_off: 'Повтор выключен', repeat_all: 'Повторять всё', repeat_one: 'Повторять трек',
+      queue_empty: 'Очередь пуста', t_added_playlist: 'Добавлено в плейлист', err_no_audio: 'Аудиофайлы не найдены',
+      admin_title_field: 'Название трека', unknown_artist: 'Неизвестный артист',
       nav_home: 'Главная', nav_search: 'Поиск', nav_wave: 'Моя волна',
       nav_collection: 'Моя коллекция', nav_favorites: 'Любимые', nav_recent: 'Недавние',
       nav_wave_s: 'Волна', nav_collection_s: 'Коллекция', nav_favorites_s: 'Любимые',

@@ -1,4 +1,5 @@
-/* muzzz — one player for two sources: local audio files and the YouTube embed */
+/* muzzz — one player for two sources: local audio files and the YouTube embed.
+   Time updates are throttled at the source so the UI never gets more work than a frame. */
 (function (global) {
   'use strict';
 
@@ -7,27 +8,51 @@
 
   var listeners = [];
   var pollTimer = null;
-  var yt = { api: null, player: null, ready: false, pending: null };
+  var lastEmittedPosition = -1;
+  var yt = { api: null, player: null, ready: false };
   var sound = { ready: false, tried: false, ctx: null, bass: null, mid: null, treble: null, comp: null, gain: null };
+
+  function prefs() {
+    return (global.Store && Store.prefs) || {};
+  }
 
   var Player = {
     track: null,
     queue: [],
     index: -1,
-    context: 'list',        // list | wave | collection ...
+    context: 'list',
     playing: false,
     loading: false,
     position: 0,
     duration: 0,
     volume: 0.85,
     muted: false,
+    repeat: 'off',
+    shuffle: false,
+    autoplay: true,
+    history: [],              // for shuffle "previous"
     sleepTimer: null,
     sleepAtEnd: false,
-    onEnded: null,          // set by the app (wave continues the stream)
+    onEnded: null,
     onError: null,
 
     on: function (fn) { listeners.push(fn); },
-    emit: function (what) { listeners.forEach(function (fn) { fn(what, Player); }); },
+    emit: function (what) {
+      for (var i = 0; i < listeners.length; i++) {
+        try { listeners[i](what, Player); } catch (e) { /* keep the others alive */ }
+      }
+    },
+
+    init: function () {
+      var saved = prefs();
+      this.volume = typeof saved.volume === 'number' ? saved.volume : 0.85;
+      this.muted = !!saved.muted;
+      this.repeat = saved.repeat || 'off';
+      this.shuffle = !!saved.shuffle;
+      this.autoplay = saved.autoplay !== false;
+      audio.volume = this.volume;
+      audio.muted = this.muted;
+    },
 
     /* ------------------------------------------------------------ queue */
 
@@ -46,8 +71,12 @@
       if (!track) return;
       if (this.track && this.track.id === track.id) { this.toggle(); return; }
 
+      if (this.track) this.history.push(this.track.id);
+      if (this.history.length > 40) this.history.shift();
+
       this.track = track;
       this.position = 0;
+      lastEmittedPosition = -1;
       this.duration = track.duration || 0;
       this.loading = true;
       this.emit('track');
@@ -73,7 +102,7 @@
         else yt.player.playVideo();
       } else {
         if (this.playing) audio.pause();
-        else audio.play().catch(function () {});
+        else audio.play().catch(function () { /* blocked autoplay */ });
       }
     },
 
@@ -83,16 +112,36 @@
       else audio.pause();
     },
 
+    pickShuffleIndex: function () {
+      if (this.queue.length < 2) return 0;
+      var next;
+      do { next = Math.floor(Math.random() * this.queue.length); }
+      while (next === this.index);
+      return next;
+    },
+
     next: function (auto) {
       if (this.context === 'wave' && typeof this.onEnded === 'function') {
         this.onEnded(auto === true);
         return;
       }
       if (!this.queue.length) return;
-      var nextIndex = this.index + 1;
-      if (nextIndex >= this.queue.length) {
-        if (auto) { this.pause(); return; }
-        nextIndex = 0;
+
+      if (auto && this.repeat === 'one') {
+        this.seekTo(0);
+        this.resume();
+        return;
+      }
+
+      var nextIndex;
+      if (this.shuffle) {
+        nextIndex = this.pickShuffleIndex();
+      } else {
+        nextIndex = this.index + 1;
+        if (nextIndex >= this.queue.length) {
+          if (auto && this.repeat !== 'all') { this.pause(); this.emit('state'); return; }
+          nextIndex = 0;
+        }
       }
       this.index = nextIndex;
       this.play(this.queue[nextIndex], { context: this.context });
@@ -101,10 +150,22 @@
     prev: function () {
       if (this.position > 4) { this.seekTo(0); return; }
       if (!this.queue.length) return;
+
+      var previousId = this.shuffle ? this.history.pop() : null;
+      if (previousId) {
+        var found = this.queue.filter(function (t) { return t.id === previousId; })[0];
+        if (found) { this.play(found, { context: this.context }); return; }
+      }
       var prevIndex = this.index - 1;
       if (prevIndex < 0) prevIndex = this.queue.length - 1;
       this.index = prevIndex;
       this.play(this.queue[prevIndex], { context: this.context });
+    },
+
+    resume: function () {
+      if (!this.track) return;
+      if (this.track.source === 'youtube') { if (yt.player && yt.ready) yt.player.playVideo(); }
+      else audio.play().catch(function () {});
     },
 
     /* ----------------------------------------------------------- sources */
@@ -112,7 +173,8 @@
     playLocal: function (track) {
       this.stopYouTube();
       audio.src = track.src;
-      audio.volume = this.muted ? 0 : this.volume;
+      audio.volume = this.volume;
+      audio.muted = this.muted;
       audio.load();
       audio.play().catch(function () { Player.playing = false; Player.emit('state'); });
       this.buildChain();
@@ -124,7 +186,8 @@
       this.ensureYouTube().then(function () {
         if (!Player.track || Player.track.videoId !== track.videoId) return;
         yt.player.loadVideoById(track.videoId);
-        yt.player.setVolume(Player.muted ? 0 : Math.round(Player.volume * 100));
+        if (Player.muted) yt.player.mute();
+        else { yt.player.unMute(); yt.player.setVolume(Math.round(Player.volume * 100)); }
       }).catch(function () {
         Player.loading = false;
         Player.emit('state');
@@ -133,6 +196,7 @@
     },
 
     stopYouTube: function () {
+      this.stopPolling();
       if (yt.player && yt.ready) {
         try { yt.player.stopVideo(); } catch (e) { /* ignore */ }
       }
@@ -156,7 +220,9 @@
               onError: function (event) {
                 Player.loading = false;
                 Player.emit('state');
-                if (Player.onError) Player.onError(event.data === 101 || event.data === 150 ? 'embed_blocked' : 'video');
+                if (Player.onError) {
+                  Player.onError(event.data === 101 || event.data === 150 ? 'embed_blocked' : 'video');
+                }
               }
             }
           });
@@ -170,25 +236,26 @@
         };
         var script = document.createElement('script');
         script.src = 'https://www.youtube.com/iframe_api';
-        script.onerror = function () { reject(new Error('script')); };
+        script.async = true;
+        script.onerror = function () { clearTimeout(failTimer); reject(new Error('script')); };
         document.head.appendChild(script);
       });
       return yt.api;
     },
 
     onYouTubeState: function (event) {
-      var YTState = global.YT.PlayerState;
-      if (event.data === YTState.PLAYING) {
+      var state = global.YT.PlayerState;
+      if (event.data === state.PLAYING) {
         Player.playing = true;
         Player.loading = false;
         Player.duration = yt.player.getDuration() || Player.duration;
         Player.startPolling();
-      } else if (event.data === YTState.PAUSED) {
+      } else if (event.data === state.PAUSED) {
         Player.playing = false;
         Player.stopPolling();
-      } else if (event.data === YTState.BUFFERING) {
+      } else if (event.data === state.BUFFERING) {
         Player.loading = true;
-      } else if (event.data === YTState.ENDED) {
+      } else if (event.data === state.ENDED) {
         Player.playing = false;
         Player.stopPolling();
         Player.handleEnded();
@@ -199,23 +266,33 @@
     startPolling: function () {
       this.stopPolling();
       pollTimer = setInterval(function () {
-        if (!yt.player || !yt.ready) return;
+        if (!yt.player || !yt.ready || document.hidden) return;
         Player.position = yt.player.getCurrentTime() || 0;
         Player.duration = yt.player.getDuration() || Player.duration;
-        Player.emit('time');
-      }, 300);
+        Player.emitTime();
+      }, 500);
     },
 
     stopPolling: function () {
       if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
     },
 
+    /** Only tell the UI when the visible second actually changed. */
+    emitTime: function () {
+      var second = Math.floor(this.position);
+      if (second === lastEmittedPosition) return;
+      lastEmittedPosition = second;
+      this.emit('time');
+    },
+
     handleEnded: function () {
       if (this.sleepAtEnd) {
         this.sleepAtEnd = false;
+        this.pause();
         this.emit('sleep');
         return;
       }
+      if (!this.autoplay) { this.emit('state'); return; }
       this.next(true);
     },
 
@@ -229,7 +306,8 @@
         audio.currentTime = seconds;
       }
       this.position = seconds;
-      this.emit('time');
+      lastEmittedPosition = -1;
+      this.emitTime();
     },
 
     seekFraction: function (fraction) {
@@ -255,6 +333,27 @@
       }
       if (global.Store) { Store.prefs.muted = this.muted; Store.savePrefs(); }
       this.emit('volume');
+    },
+
+    cycleRepeat: function () {
+      var order = ['off', 'all', 'one'];
+      this.repeat = order[(order.indexOf(this.repeat) + 1) % order.length];
+      if (global.Store) { Store.prefs.repeat = this.repeat; Store.savePrefs(); }
+      this.emit('mode');
+      return this.repeat;
+    },
+
+    toggleShuffle: function () {
+      this.shuffle = !this.shuffle;
+      if (global.Store) { Store.prefs.shuffle = this.shuffle; Store.savePrefs(); }
+      this.emit('mode');
+      return this.shuffle;
+    },
+
+    setAutoplay: function (value) {
+      this.autoplay = !!value;
+      if (global.Store) { Store.prefs.autoplay = this.autoplay; Store.savePrefs(); }
+      this.emit('mode');
     },
 
     setSleep: function (value) {
@@ -285,7 +384,9 @@
         var gain = ctx.createGain();
         source.connect(bass); bass.connect(mid); mid.connect(treble);
         treble.connect(comp); comp.connect(gain); gain.connect(ctx.destination);
-        sound = Object.assign(sound, { ready: true, ctx: ctx, bass: bass, mid: mid, treble: treble, comp: comp, gain: gain });
+        sound = Object.assign(sound, {
+          ready: true, ctx: ctx, bass: bass, mid: mid, treble: treble, comp: comp, gain: gain
+        });
         this.applyEq();
       } catch (e) { sound.ready = false; }
     },
@@ -317,8 +418,8 @@
           album: 'muzzz',
           artwork: [{ src: this.track.artwork || 'placeholder.svg', sizes: '480x360' }]
         });
-        navigator.mediaSession.setActionHandler('play', function () { Player.toggle(); });
-        navigator.mediaSession.setActionHandler('pause', function () { Player.toggle(); });
+        navigator.mediaSession.setActionHandler('play', function () { Player.resume(); });
+        navigator.mediaSession.setActionHandler('pause', function () { Player.pause(); });
         navigator.mediaSession.setActionHandler('previoustrack', function () { Player.prev(); });
         navigator.mediaSession.setActionHandler('nexttrack', function () { Player.next(false); });
       } catch (e) { /* ignore */ }
@@ -335,17 +436,19 @@
   audio.addEventListener('timeupdate', function () {
     if (Player.track && Player.track.source !== 'youtube') {
       Player.position = audio.currentTime;
-      Player.emit('time');
+      Player.emitTime();
     }
   });
   audio.addEventListener('loadedmetadata', function () {
     if (Player.track && Player.track.source !== 'youtube' && isFinite(audio.duration)) {
       Player.duration = audio.duration;
-      Player.emit('time');
+      lastEmittedPosition = -1;
+      Player.emitTime();
     }
   });
   audio.addEventListener('ended', function () { Player.handleEnded(); });
   audio.addEventListener('error', function () {
+    if (!audio.getAttribute('src')) return;          // cleared on purpose, not a failure
     Player.loading = false;
     Player.playing = false;
     Player.emit('state');
