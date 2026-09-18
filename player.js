@@ -282,6 +282,7 @@
       var second = Math.floor(this.position);
       if (second === lastEmittedPosition) return;
       lastEmittedPosition = second;
+      this.updatePositionState();
       this.emit('time');
     },
 
@@ -412,16 +413,44 @@
     updateMediaSession: function () {
       if (!('mediaSession' in navigator) || !this.track) return;
       try {
+        var art = this.track.artwork || 'icon-512.png';
         navigator.mediaSession.metadata = new global.MediaMetadata({
           title: this.track.title,
           artist: this.track.artist,
           album: 'muzzz',
-          artwork: [{ src: this.track.artwork || 'placeholder.svg', sizes: '480x360' }]
+          artwork: [
+            { src: art, sizes: '512x512' },
+            { src: 'icon-192.png', sizes: '192x192', type: 'image/png' }
+          ]
         });
-        navigator.mediaSession.setActionHandler('play', function () { Player.resume(); });
-        navigator.mediaSession.setActionHandler('pause', function () { Player.pause(); });
-        navigator.mediaSession.setActionHandler('previoustrack', function () { Player.prev(); });
-        navigator.mediaSession.setActionHandler('nexttrack', function () { Player.next(false); });
+        var handlers = {
+          play: function () { Player.resume(); },
+          pause: function () { Player.pause(); },
+          stop: function () { Player.pause(); },
+          previoustrack: function () { Player.prev(); },
+          nexttrack: function () { Player.next(false); },
+          seekbackward: function (d) { Player.seekTo(Math.max(0, Player.position - ((d && d.seekOffset) || 10))); },
+          seekforward: function (d) { Player.seekTo(Player.position + ((d && d.seekOffset) || 10)); },
+          seekto: function (d) { if (d && d.seekTime != null) Player.seekTo(d.seekTime); }
+        };
+        Object.keys(handlers).forEach(function (name) {
+          try { navigator.mediaSession.setActionHandler(name, handlers[name]); } catch (e) { /* unsupported action */ }
+        });
+      } catch (e) { /* ignore */ }
+    },
+
+    /** Lock screen scrubber + play/pause state, so the phone can drive playback. */
+    updatePositionState: function () {
+      if (!('mediaSession' in navigator)) return;
+      try {
+        navigator.mediaSession.playbackState = this.playing ? 'playing' : 'paused';
+        if (navigator.mediaSession.setPositionState && this.duration > 0 && isFinite(this.duration)) {
+          navigator.mediaSession.setPositionState({
+            duration: this.duration,
+            position: Math.max(0, Math.min(this.position, this.duration)),
+            playbackRate: 1
+          });
+        }
       } catch (e) { /* ignore */ }
     }
   };
@@ -429,9 +458,15 @@
   /* --------------------------------------------------- local audio events */
 
   audio.addEventListener('playing', function () {
-    Player.playing = true; Player.loading = false; Player.emit('state');
+    Player.playing = true; Player.loading = false;
+    Player.updatePositionState();
+    Player.emit('state');
   });
-  audio.addEventListener('pause', function () { Player.playing = false; Player.emit('state'); });
+  audio.addEventListener('pause', function () {
+    Player.playing = false;
+    Player.updatePositionState();
+    Player.emit('state');
+  });
   audio.addEventListener('waiting', function () { Player.loading = true; Player.emit('state'); });
   audio.addEventListener('timeupdate', function () {
     if (Player.track && Player.track.source !== 'youtube') {
@@ -453,6 +488,14 @@
     Player.playing = false;
     Player.emit('state');
     if (Player.onError) Player.onError('local_file');
+  });
+
+  /* The browser may suspend the Web Audio graph when the app is backgrounded;
+     resuming it keeps local playback alive with the screen off. */
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden) return;
+    if (sound.ctx && sound.ctx.state === 'suspended') sound.ctx.resume();
+    Player.updatePositionState();
   });
 
   global.Player = Player;

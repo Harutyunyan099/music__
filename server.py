@@ -401,12 +401,22 @@ class Handler(SimpleHTTPRequestHandler):
         return True
 
     def end_headers(self):
+        path = urllib.parse.urlparse(self.path).path
+        name = os.path.basename(path).lower()
         self.send_header('Accept-Ranges', 'bytes')
         self.send_header('X-Content-Type-Options', 'nosniff')
         self.send_header('Referrer-Policy', 'no-referrer')
-        suffix = os.path.splitext(urllib.parse.urlparse(self.path).path)[1].lower()
-        if suffix in STATIC_CACHE and not self.path.startswith('/api/'):
-            self.send_header('Cache-Control', STATIC_CACHE[suffix])
+
+        if name == 'sw.js':
+            # the service worker itself must never be cached, or updates never arrive
+            self.send_header('Cache-Control', 'no-cache, no-store, must-revalidate')
+            self.send_header('Service-Worker-Allowed', '/')
+        elif name in ('', 'index.html', 'manifest.json'):
+            self.send_header('Cache-Control', 'no-cache')
+        else:
+            suffix = os.path.splitext(path)[1].lower()
+            if suffix in STATIC_CACHE and not path.startswith('/api/'):
+                self.send_header('Cache-Control', STATIC_CACHE[suffix])
         super().end_headers()
 
 

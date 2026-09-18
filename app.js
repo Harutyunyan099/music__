@@ -66,6 +66,7 @@
       Store.onChange(function (what, id) { App.onStoreEvent(what, id); });
 
       this.bind();
+      this.registerServiceWorker();
       this.syncModes();
       this.syncPlayState();
 
@@ -1035,6 +1036,7 @@
 
         '<label class="setting"><span>' + h(t('autoplay')) + '</span>' +
           '<input type="checkbox" class="switch" data-action="autoplay"' + (Player.autoplay ? ' checked' : '') + '></label>' +
+        '<p class="muted">' + h(t('bg_note')) + '</p>' +
 
         '<div class="setting setting--col"><span>' + h(t('eq_title')) + '</span>' +
           ['bass', 'mid', 'treble'].map(function (band) {
@@ -1131,6 +1133,36 @@
           App.rerender();
           App.toast(t('t_added'));
         });
+      });
+    },
+
+    /* ------------------------------------------- offline app + self update */
+
+    registerServiceWorker: function () {
+      if (!('serviceWorker' in navigator) || location.protocol === 'file:') return;
+
+      navigator.serviceWorker.register('sw.js').then(function (registration) {
+        registration.addEventListener('updatefound', function () {
+          var installing = registration.installing;
+          if (!installing) return;
+          installing.addEventListener('statechange', function () {
+            if (installing.state !== 'installed' || !navigator.serviceWorker.controller) return;
+            App.updateReady = true;
+            // never cut the music off: reload now only if nothing is playing
+            if (!Player.playing) location.reload();
+            else App.toast(t('update_ready'));
+          });
+        });
+        // check for a new deploy when the app is opened again
+        document.addEventListener('visibilitychange', function () {
+          if (!document.hidden) registration.update();
+        });
+      }).catch(function () { /* served without HTTPS: no offline mode, app still works */ });
+
+      navigator.serviceWorker.addEventListener('controllerchange', function () {
+        if (App.reloading) return;
+        App.reloading = true;
+        if (!Player.playing) location.reload();
       });
     },
 
