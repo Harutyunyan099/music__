@@ -72,6 +72,11 @@
       this.emit('queue');
     },
 
+    /** The app may swap a YouTube track for the user's own file; see App.resolve. */
+    resolveTrack: function (track) {
+      return (global.App && typeof App.resolve === 'function') ? App.resolve(track) : track;
+    },
+
     /** Shows a track in the player without loading or playing it (used on startup). */
     prime: function (track, queue, index) {
       if (!track) return;
@@ -178,7 +183,7 @@
         }
       }
       this.index = nextIndex;
-      this.play(this.queue[nextIndex], { context: this.context });
+      this.play(this.resolveTrack(this.queue[nextIndex]), { context: this.context });
     },
 
     prev: function () {
@@ -193,7 +198,7 @@
       var prevIndex = this.index - 1;
       if (prevIndex < 0) prevIndex = this.queue.length - 1;
       this.index = prevIndex;
-      this.play(this.queue[prevIndex], { context: this.context });
+      this.play(this.resolveTrack(this.queue[prevIndex]), { context: this.context });
     },
 
     resume: function () {

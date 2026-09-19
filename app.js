@@ -176,6 +176,59 @@
 
     trackById: function (id) { return this.registry.get(id); },
 
+    /* ---------------------------------------------------- source resolver --
+
+       A YouTube result can only play through the YouTube embed, and that embed is
+       stopped by the platform in the background. But if the user already owns the
+       same song as a file (songs.json or an upload), we can play THAT instead:
+       same track in the UI, real <audio> underneath, real background playback.
+       Nothing is faked — the substitution only happens on a confident match.      */
+
+    normalizeName: function (value) {
+      return String(value || '')
+        .toLowerCase()
+        .replace(/\([^)]*\)|\[[^\]]*\]/g, ' ')                     // (official video)
+        .replace(/\b(official|lyrics?|audio|video|clip|hd|4k|mv|premiere)\b/g, ' ')
+        .replace(/\s+feat\.?\s.*$/, ' ')
+        .replace(/[^\p{L}\p{N}]+/gu, ' ')
+        .trim();
+    },
+
+    artistTokens: function (value) {
+      return this.normalizeName(value).split(' ').filter(function (token) { return token.length > 2; });
+    },
+
+    matchLocal: function (track) {
+      if (!track || track.source !== 'youtube' || !this.local.length) return null;
+      var title = this.normalizeName(track.title);
+      if (title.length < 3) return null;
+      var wanted = this.artistTokens(track.artist);
+      var self = this;
+
+      return this.local.filter(function (local) {
+        var localTitle = self.normalizeName(local.title);
+        if (!localTitle) return false;
+        var sameTitle = localTitle === title ||
+          (localTitle.length > 4 && title.indexOf(localTitle) !== -1) ||
+          (title.length > 4 && localTitle.indexOf(title) !== -1);
+        if (!sameTitle) return false;
+        if (!wanted.length) return true;
+        var mine = self.artistTokens(local.artist);
+        return mine.some(function (token) { return wanted.indexOf(token) !== -1; });
+      })[0] || null;
+    },
+
+    /** Every play goes through here, so the rule is applied everywhere. */
+    resolve: function (track) {
+      var local = this.matchLocal(track);
+      if (!local) return track;
+      if (!this.substituteNotice) {
+        this.substituteNotice = true;
+        this.toast(t('t_local_source'));
+      }
+      return local;
+    },
+
     /* ----------------------------------------------------------- routing */
 
     go: function (route, options) {
@@ -580,7 +633,7 @@
       Player.context = 'wave';
       Wave.start().then(function (track) {
         if (!track) { App.toast(t('err_generic')); return; }
-        Player.play(track, { queue: [track], index: 0, context: 'wave' });
+        Player.play(App.resolve(track), { queue: [track], index: 0, context: 'wave' });
         if (App.route === 'wave') App.rerender();
       });
     },
@@ -588,7 +641,7 @@
     waveNext: function () {
       Wave.next().then(function (track) {
         if (!track) { App.toast(t('err_generic')); return; }
-        Player.play(track, { queue: [track], index: 0, context: 'wave' });
+        Player.play(App.resolve(track), { queue: [track], index: 0, context: 'wave' });
         if (App.route === 'wave') App.rerender();
       });
     },
@@ -598,7 +651,7 @@
       if (!track) return;
       this.toast(t('t_skipped'));
       Wave.skip(track).then(function (next) {
-        if (next) Player.play(next, { queue: [next], index: 0, context: 'wave' });
+        if (next) Player.play(App.resolve(next), { queue: [next], index: 0, context: 'wave' });
         if (App.route === 'wave') App.rerender();
       });
     },
@@ -707,7 +760,7 @@
           var open = Store.playlist(this.routeParam);
           if (!open || !open.tracks.length) return;
           this.reg(open.tracks);
-          Player.play(open.tracks[0], { queue: open.tracks, index: 0, context: 'playlist' });
+          Player.play(this.resolve(open.tracks[0]), { queue: open.tracks, index: 0, context: 'playlist' });
           return;
         }
 
@@ -821,7 +874,7 @@
         if (item && !seen[item.id]) { seen[item.id] = true; unique.push(item); }
       });
       var index = unique.findIndex(function (item) { return item.id === track.id; });
-      Player.play(track, { queue: unique, index: index, context: this.route === 'wave' ? 'wave' : 'list' });
+      Player.play(this.resolve(track), { queue: unique, index: index, context: this.route === 'wave' ? 'wave' : 'list' });
     },
 
     /* ----------------------------------------------------------- player UI */
@@ -1130,7 +1183,7 @@
           return true;
         });
         self.reg(queue);
-        Player.play(track, { queue: queue, index: 0, context: 'radio' });
+        Player.play(self.resolve(track), { queue: queue, index: 0, context: 'radio' });
         self.toast(t('radio_started', { a: track.artist }));
         if (self.route === 'wave' || self.route === 'home') self.rerender();
       });
