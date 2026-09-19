@@ -3,7 +3,7 @@
    what lets local songs keep playing when the screen goes off).
    Job 2: the site updates itself — a new VERSION replaces the old cache on the next visit. */
 
-var VERSION = 'muzzz-v3.3.0';
+var VERSION = 'muzzz-v4.0.0';
 var SHELL_CACHE = VERSION + '-shell';
 var MEDIA_CACHE = VERSION + '-media';
 

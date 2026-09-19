@@ -250,7 +250,7 @@
           (options.removable
             ? this.plainButton('remove', track.id, 'trash', t('remove'))
             : this.addButton(track, inCollection)) +
-          this.plainButton('playlist', track.id, 'queue', t('add_to_playlist')) +
+          this.plainButton('menu', track.id, 'dots', t('more')) +
         '</div>' +
       '</article>';
     },
@@ -275,7 +275,7 @@
           (options.removable
             ? this.plainButton(options.removeAction || 'remove', track.id, 'trash', t('remove'))
             : this.addButton(track, inCollection)) +
-          this.plainButton('playlist', track.id, 'queue', t('add_to_playlist')) +
+          this.plainButton('menu', track.id, 'dots', t('more')) +
         '</span>' +
       '</li>';
     },
@@ -638,6 +638,43 @@
           this.openPlaylistPicker(track);
           return;
 
+        case 'menu':
+          if (!track) return;
+          this.openMenu(track);
+          return;
+
+        case 'menu-play':
+          $('#modal-menu').close();
+          if (this.menuTrack) this.playFromContext(this.menuTrack);
+          return;
+
+        case 'menu-queue': {
+          if (!this.menuTrack) return;
+          $('#modal-menu').close();
+          this.addToQueue(this.menuTrack);
+          return;
+        }
+
+        case 'menu-radio': {
+          if (!this.menuTrack) return;
+          $('#modal-menu').close();
+          this.startRadio(this.menuTrack);
+          return;
+        }
+
+        case 'menu-share': {
+          if (!this.menuTrack) return;
+          $('#modal-menu').close();
+          this.shareTrack(this.menuTrack);
+          return;
+        }
+
+        case 'menu-playlist':
+          if (!this.menuTrack) return;
+          $('#modal-menu').close();
+          this.openPlaylistPicker(this.menuTrack);
+          return;
+
         case 'playlist-new': {
           var name = prompt(t('playlist_name'), t('playlist_default'));
           if (name === null) return;
@@ -794,6 +831,11 @@
       if (what === 'time') { this.scheduleProgress(); return; }
 
       if (what === 'track') {
+        this.extendRadio();
+        if (Player.track && Player.track.source === 'youtube' &&
+            window.matchMedia('(max-width: 720px)').matches && !this.npOpen) {
+          this.openNp(true);            // the video belongs in the main player, not in a list
+        }
         if (Player.track && Player.track.source === 'youtube' && !this.ytNoticeShown) {
           this.ytNoticeShown = true;
           this.toast(t('yt_bg_note'));
@@ -1027,6 +1069,105 @@
       var scale = rect.width / 320;
       host.style.transform = 'translate3d(' + rect.left + 'px,' + rect.top + 'px,0) scale(' + scale + ')';
       host.style.borderRadius = (this.npOpen ? 22 : 12) / scale + 'px';
+    },
+
+    /* -------------------------------------------------- song menu (⋮) ----- */
+
+    openMenu: function (track) {
+      this.menuTrack = track;
+      var fav = Store.isFavorite(track.id);
+      var inCollection = Store.inCollection(track.id);
+
+      $('#menu-head').innerHTML =
+        '<img src="' + h(track.artwork || PLACEHOLDER) + '" alt="">' +
+        '<span><b>' + h(track.title) + '</b><i>' + h(track.artist) + '</i></span>';
+
+      var item = function (action, icon, label, on, accent) {
+        return '<button class="sheet__item' + (on ? ' is-on' : '') + (accent ? ' sheet__item--accent' : '') +
+          '" data-action="' + action + '">' + App.icon(icon) + '<span>' + h(label) + '</span></button>';
+      };
+
+      $('#menu-body').innerHTML =
+        item('menu-play', 'play', t('play')) +
+        item('fav', fav ? 'heart-on' : 'heart', fav ? t('fav_on') : t('fav_off'), fav).replace('data-action="fav"', 'data-action="fav" data-id="' + h(track.id) + '"') +
+        item('add', inCollection ? 'check' : 'plus', inCollection ? t('added') : t('add'), inCollection).replace('data-action="add"', 'data-action="add" data-id="' + h(track.id) + '"') +
+        item('menu-queue', 'queue', t('add_to_queue')) +
+        item('menu-playlist', 'library', t('add_to_playlist')) +
+        item('menu-radio', 'radio', t('start_radio'), false, true) +
+        item('menu-share', 'share', t('share'));
+
+      var dialog = $('#modal-menu');
+      if (!dialog.open) dialog.showModal();
+    },
+
+    addToQueue: function (track) {
+      if (!Player.queue.length) {
+        Player.setQueue([track], 0, 'list');
+      } else {
+        var already = Player.queue.some(function (t) { return t.id === track.id; });
+        if (already) { this.toast(t('t_in_queue')); return; }
+        Player.queue.splice(Player.index + 1, 0, track);
+        Player.emit('queue');
+      }
+      this.registry.set(track.id, track);
+      this.toast(t('t_queued'));
+      if (this.npOpen) this.renderQueue();
+    },
+
+    /** "A wave like this song": one seed track -> a self-extending queue. */
+    startRadio: function (track) {
+      var self = this;
+      this.toast(t('radio_loading'));
+      Radio.start(track).then(function (tracks) {
+        if (!tracks.length) {
+          self.toast(Api.available === false ? t('err_no_key') : t('radio_empty'));
+          return;
+        }
+        var seen = {};
+        var queue = [track].concat(tracks).filter(function (item) {
+          if (!item || seen[item.id]) return false;
+          seen[item.id] = true;
+          return true;
+        });
+        self.reg(queue);
+        Player.play(track, { queue: queue, index: 0, context: 'radio' });
+        self.toast(t('radio_started', { a: track.artist }));
+        if (self.route === 'wave' || self.route === 'home') self.rerender();
+      });
+    },
+
+    /** Keeps the radio endless: top the queue up before it runs out. */
+    extendRadio: function () {
+      if (Player.context !== 'radio' || !Radio.active) return;
+      var left = Player.queue.length - Player.index - 1;
+      if (left > 3 || Radio.loading) return;
+      var recent = Player.queue.slice(Math.max(0, Player.index - 2), Player.index + 1);
+      Radio.more(recent).then(function (tracks) {
+        if (!tracks.length) return;
+        var known = {};
+        Player.queue.forEach(function (item) { known[item.id] = true; });
+        var extra = tracks.filter(function (item) { return !known[item.id]; });
+        if (!extra.length) return;
+        App.reg(extra);
+        Player.queue = Player.queue.concat(extra);
+        Player.emit('queue');
+        if (App.npOpen) App.renderQueue();
+      });
+    },
+
+    shareTrack: function (track) {
+      var url = track.url || location.href;
+      var data = { title: track.title, text: track.title + ' — ' + track.artist, url: url };
+      if (navigator.share) {
+        navigator.share(data).catch(function () { /* user cancelled */ });
+        return;
+      }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(url).then(function () { App.toast(t('t_copied')); })
+          .catch(function () { App.toast(url); });
+        return;
+      }
+      this.toast(url);
     },
 
     /* ------------------------------------------------------ modals, admin */

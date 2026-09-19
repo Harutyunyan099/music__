@@ -153,5 +153,116 @@
     }
   };
 
+  /* --------------------------------------------------------------------------
+     Radio — "a wave like this song". Seeded from ONE track instead of the whole
+     listening history. Same track objects, same player, same queue: the only new
+     thing here is how candidates are chosen. Everything comes from a real search.
+     -------------------------------------------------------------------------- */
+
+  var Radio = {
+    active: false,
+    seed: null,
+    seen: {},
+    loading: false,
+    pool: [],
+
+    queriesFor: function (track) {
+      var artist = (track.artist || '').trim();
+      var title = (track.title || '').trim();
+      var list = [];
+      if (artist && artist.toLowerCase() !== 'unknown') {
+        list.push(artist);
+        list.push(artist + ' mix');
+      }
+      if (title) list.push(title + (artist ? ' ' + artist : ''));
+      if (!list.length) list.push('music');
+      return list;
+    },
+
+    fetch: function (query, limit) {
+      if (!Api.available) return Promise.resolve([]);
+      return Api.search(query, { limit: limit || 20 })
+        .then(function (payload) { return (payload.items || []).map(Api.toTrack); })
+        .catch(function () { return []; });
+    },
+
+    fresh: function (track) {
+      if (!track || this.seen[track.id]) return false;
+      if (this.seed && track.id === this.seed.id) return false;
+      if (track.duration && (track.duration < 45 || track.duration > 900)) return false;
+      return true;
+    },
+
+    /** Collects candidates and mixes artists so one name does not dominate. */
+    collect: function (queries) {
+      var self = this;
+      return Promise.all(queries.map(function (query) { return self.fetch(query); }))
+        .then(function (groups) {
+          var byArtist = {};
+          groups.forEach(function (tracks) {
+            tracks.forEach(function (track) {
+              if (!self.fresh(track)) return;
+              self.seen[track.id] = true;        // marked here so one track enters once
+              var key = (track.artist || '?').toLowerCase();
+              (byArtist[key] = byArtist[key] || []).push(track);
+            });
+          });
+
+          var names = Object.keys(byArtist);
+          names.sort(function () { return Math.random() - 0.5; });
+          var mixed = [];
+          var round = 0;
+          while (mixed.length < 24 && round < 6) {          // round-robin over artists
+            var added = 0;
+            for (var i = 0; i < names.length; i++) {
+              var bucket = byArtist[names[i]];
+              if (bucket.length > round) { mixed.push(bucket[round]); added++; }
+            }
+            if (!added) break;
+            round++;
+          }
+          return mixed;
+        });
+    },
+
+    start: function (track) {
+      var self = this;
+      this.active = true;
+      this.seed = track;
+      this.seen = {};
+      this.seen[track.id] = true;
+      this.loading = true;
+      return this.collect(this.queriesFor(track)).then(function (tracks) {
+        self.loading = false;
+        self.pool = tracks;
+        return tracks;
+      });
+    },
+
+    /** Called when the queue is running low — keeps the radio endless. */
+    more: function (recentTracks) {
+      if (!this.active || this.loading) return Promise.resolve([]);
+      var self = this;
+      this.loading = true;
+
+      var artists = (recentTracks || []).map(function (t) { return t.artist; })
+        .filter(Boolean).slice(-3);
+      var queries = artists.length ? artists : this.queriesFor(this.seed);
+
+      return this.collect(queries).then(function (tracks) {
+        self.loading = false;
+        return tracks;
+      });
+    },
+
+    stop: function () {
+      this.active = false;
+      this.seed = null;
+      this.seen = {};
+      this.pool = [];
+    }
+  };
+
   global.Wave = Wave;
+  global.Radio = Radio;
 })(window);
