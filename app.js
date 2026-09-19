@@ -124,7 +124,7 @@
                 source: 'local',
                 title: item.title,
                 artist: item.artist,
-                artwork: PLACEHOLDER,
+                artwork: item.artwork || PLACEHOLDER,
                 duration: item.duration || 0,
                 src: url,
                 upload: true
@@ -715,6 +715,14 @@
           return;
         }
 
+        case 'menu-attach': {
+          if (!this.menuTrack) return;
+          $('#modal-menu').close();
+          this.pendingAttach = this.menuTrack;
+          $('#attach-file').click();
+          return;
+        }
+
         case 'menu-share': {
           if (!this.menuTrack) return;
           $('#modal-menu').close();
@@ -1147,6 +1155,7 @@
         item('menu-queue', 'queue', t('add_to_queue')) +
         item('menu-playlist', 'library', t('add_to_playlist')) +
         item('menu-radio', 'radio', t('start_radio'), false, true) +
+        (track.source === 'youtube' ? item('menu-attach', 'plus', t('attach_file')) : '') +
         item('menu-share', 'share', t('share'));
 
       var dialog = $('#modal-menu');
@@ -1206,6 +1215,64 @@
         Player.emit('queue');
         if (App.npOpen) App.renderQueue();
       });
+    },
+
+    /* ---------------------------------------------------- attach a file ----
+
+       The legal bridge between a YouTube search result and real background
+       playback: the user points at a file they own, we store it with the
+       metadata of that search result (title, artist, YouTube artwork), and from
+       then on the same song plays through <audio> — lock screen included.      */
+
+    attachFile: function (file) {
+      var track = this.pendingAttach;
+      this.pendingAttach = null;
+      if (!track || !file) return;
+
+      var url = URL.createObjectURL(file);
+      var wasPlaying = Player.track && Player.track.id === track.id;
+      var at = wasPlaying ? Player.position : 0;
+
+      new Promise(function (resolve) {
+        var probe = new Audio();
+        probe.preload = 'metadata';
+        var settled = false;
+        var done = function (duration) {
+          if (settled) return;
+          settled = true;
+          URL.revokeObjectURL(url);
+          resolve(duration);
+        };
+        probe.onloadedmetadata = function () { done(isFinite(probe.duration) ? probe.duration : 0); };
+        probe.onerror = function () { done(0); };
+        setTimeout(function () { done(0); }, 5000);
+        probe.src = url;
+      }).then(function (duration) {
+        return Store.db.put({
+          id: file.name + ':' + file.size,
+          name: file.name,
+          blob: file,
+          title: track.title,
+          artist: track.artist,
+          artwork: track.artworkLarge || track.artwork || '',
+          duration: duration || track.duration || 0,
+          addedAt: Date.now()
+        });
+      }).then(function () {
+        return App.loadLocal();
+      }).then(function () {
+        Wave.init(App.local);
+        App.rerender();
+        App.toast(t('t_attached'));
+
+        if (wasPlaying) {                       // switch over without losing the moment
+          var local = App.matchLocal(track);
+          if (local) {
+            Player.play(local, { context: Player.context });
+            if (at > 2) setTimeout(function () { Player.seekTo(at); }, 400);
+          }
+        }
+      }).catch(function () { App.toast(t('err_generic')); });
     },
 
     shareTrack: function (track) {
@@ -1573,6 +1640,7 @@
       });
       $('#admin-add').addEventListener('click', function () { $('#admin-files').click(); });
       $('#admin-files').addEventListener('change', function () { App.addUploads(this.files); this.value = ''; });
+      $('#attach-file').addEventListener('change', function () { App.attachFile(this.files[0]); this.value = ''; });
       $('#admin-restore').addEventListener('click', function () {
         Store.restoreLocal();
         App.loadLocal().then(function () { Wave.init(App.local); App.renderAdmin(); App.rerender(); });
